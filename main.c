@@ -78,7 +78,7 @@ int main( void )
    
     //CLK_PeripheralClockConfig(CLK_Peripheral_RTC, DISABLE);
     //RTC_DeInit();
-   CLK_RTCClockConfig(CLK_RTCCLKSource_LSI, CLK_RTCCLKDiv_1);
+   CLK_RTCClockConfig(CLK_RTCCLKSource_LSI, CLK_RTCCLKDiv_64);
     CLK_PeripheralClockConfig(CLK_Peripheral_RTC, ENABLE);//Такт для RTC
    //LCD_GLASS_Init(); //Инициализируем стекляшку
    
@@ -98,8 +98,10 @@ int main( void )
    
    RTC_WakeUpCmd(DISABLE);
    CFG->GCR |= CFG_GCR_AL; //Поднимаем флаг AL
-   RTC_SetWakeUpCounter(2049*20);//Прерывание через каждую секунду
+   RTC_SetWakeUpCounter(37*10);//Прерывание через каждую секунду
    RTC_WakeUpCmd(ENABLE);
+   
+   
  
    halt();
  
@@ -324,6 +326,8 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
   CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_8);
    while (CLK_GetFlagStatus(CLK_FLAG_HSIRDY) == 0);
   */
+  
+  /*
    init_adc();
    vcc = GetVcc();
    temp_intr = GetTemp();
@@ -361,17 +365,48 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
    spi_send(temp, vcc);
 
    GPIO_ResetBits(GPIOA, VCC_PIN);
-   
+  
+  */
+  
+  
+/*  
    SPI_Cmd(SPI1, DISABLE);
    GPIO_ExternalPullUpConfig(GPIOA, MISO | MOSI, DISABLE);
    GPIO_ExternalPullUpConfig(GPIOC, SCK, DISABLE);
    SYSCFG_REMAPPinConfig(REMAP_Pin_SPI1Full, DISABLE);
    CLK_PeripheralClockConfig(CLK_Peripheral_SPI1, DISABLE);
- 
+*/ 
    
-   GPIO_ResetBits(GPIOC, GPIO_Pin_All /*VCC_PIN | CSN | SCK*/);
-   GPIO_ResetBits(GPIOA, GPIO_Pin_All /*MISO | MOSI| CE | IRQ*/);
+   //GPIO_ResetBits(GPIOC, GPIO_Pin_All /*VCC_PIN | CSN | SCK*/);
+   //GPIO_ResetBits(GPIOA, GPIO_Pin_All /*MISO | MOSI| CE | IRQ*/);
 
+    
+  
+   CLK_HSICmd(ENABLE);
+   CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_HSI);
+   while (CLK_GetFlagStatus(CLK_FLAG_HSIRDY) == 0);
+   CLK_LSICmd(DISABLE);
+   
+   
+   
+   //CLK_HSICmd(DISABLE);
+   //CLK_HSEConfig(CLK_HSE_OFF);
+
+   
+  init_gpio();
+  GPIO_SetBits(GPIOC, DS1621_VCC_PIN);
+   init_adc();
+   vcc = GetVcc();
+   temp_intr = GetTemp();
+  GPIO_ResetBits(GPIOC, DS1621_VCC_PIN);
+
+
+   
+   CLK_LSICmd(ENABLE);
+   CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_LSI);
+   while (CLK_GetFlagStatus(CLK_FLAG_LSIRDY) == 0);
+   CLK_HSICmd(DISABLE); 
+   
   /*
    
    CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_1);
