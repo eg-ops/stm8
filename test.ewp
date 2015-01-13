@@ -249,7 +249,9 @@
         <option>
           <name>CCIncludePath2</name>
           <state>$PROJ_DIR$\STM8L15x_StdPeriph_Driver\inc</state>
+          <state>$PROJ_DIR$\nrf24l01_lib</state>
           <state>$PROJ_DIR$\inc</state>
+          <state>$PROJ_DIR$\</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -1570,6 +1572,15 @@
     </settings>
   </configuration>
   <group>
+    <name>nrf24l01_lib</name>
+    <file>
+      <name>$PROJ_DIR$\nrf24l01_lib\nrf24l01.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\nrf24l01_lib\nrf24l01.h</name>
+    </file>
+  </group>
+  <group>
     <name>STM8L15x_StdPeriph_Driver</name>
     <file>
       <name>$PROJ_DIR$\STM8L15x_StdPeriph_Driver\src\stm8l15x_adc.c</name>
@@ -1709,12 +1720,6 @@
   </file>
   <file>
     <name>$PROJ_DIR$\main.c</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\nrf24l01.c</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\nrf24l01.h</name>
   </file>
   <file>
     <name>$PROJ_DIR$\nrf24l01_config.h</name>
