@@ -1,0 +1,3 @@
+[submodule "STM8L15x_StdPeriph_Driver"]
+	path = STM8L15x_StdPeriph_Driver
+	url = git://github.com/g-gabber/STM8L15x_StdPeriph_Driver.git
