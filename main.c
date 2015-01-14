@@ -178,7 +178,7 @@ void spi(uint8_t full){
   unsigned int volatile i, y;
 
   
-  /*
+  
   
   nrf24l01p_read_reg(STATUS, &status, 1);
   nrf24l01p_read_reg(CONFIG, &config, 1);
@@ -190,7 +190,7 @@ void spi(uint8_t full){
   //rf_setup = 0;
   nrf24l01p_read_reg(RF_SETUP, &rf_setup, 1);
   //(RF_SETUP_RF_PWR_0 | RF_SETUP_RF_DR_250)	
-  */
+  
   
   return;
   
@@ -310,6 +310,31 @@ void spi_send(uint16_t temp, uint16_t vcc){
 
 
 
+unsigned char buff2[2];
+
+void tmp_test(){
+  cmd.dev_addr = 0x90;
+  cmd.tx_data = (uint8_t*)&buff2;
+  cmd.tx_size = 1;
+  cmd.status = 0;
+  cmd.rx_size = 2;
+  cmd.rx_data = (uint8_t*)&buff2;  
+  buff2[0] = 1;
+  i2c_exec();
+}
+
+void tmp_read(){
+  cmd.dev_addr = 0x90;
+  cmd.tx_data = (uint8_t*)&buff2;
+  cmd.tx_size = 1;
+  cmd.status = 0;
+  cmd.rx_size = 2;
+  cmd.rx_data = (uint8_t*)&buff2;  
+  buff2[0] = 0;
+  i2c_exec();
+}
+
+
 /**
   * @brief  RTC Interrupt routine.
   * @param  None
@@ -398,8 +423,43 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
    init_adc();
    vcc = GetVcc();
    temp_intr = GetTemp();
+   
+    ADC_VrefintCmd(DISABLE);
+   ADC_Cmd(ADC1, DISABLE);
+   CLK_PeripheralClockConfig(CLK_Peripheral_ADC1, DISABLE);
+   
+   ds1621_init();
+   tmp_test();
+   tmp_read();
+   
+   temp = (buff2[0] << 8) | buff2[1];
+   
+     I2C_Cmd(I2C1, DISABLE);
+   CLK_PeripheralClockConfig(CLK_Peripheral_I2C1, DISABLE);
+   
+   
   GPIO_ResetBits(GPIOC, DS1621_VCC_PIN);
+  
+  
+  //***** SPI
+  GPIO_SetBits(GPIOA, VCC_PIN);
+   
+   spi(1);
 
+   spi_send(temp, vcc);
+
+   GPIO_ResetBits(GPIOA, VCC_PIN);
+   
+   SPI_Cmd(SPI1, DISABLE);
+   GPIO_ExternalPullUpConfig(GPIOA, MISO | MOSI, DISABLE);
+   GPIO_ExternalPullUpConfig(GPIOC, SCK, DISABLE);
+   SYSCFG_REMAPPinConfig(REMAP_Pin_SPI1Full, DISABLE);
+   CLK_PeripheralClockConfig(CLK_Peripheral_SPI1, DISABLE);
+
+   
+   GPIO_ResetBits(GPIOC, GPIO_Pin_All);
+   PIO_ResetBits(GPIOA, GPIO_Pin_All);
+   
 
    
    CLK_LSICmd(ENABLE);
