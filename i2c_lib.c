@@ -70,10 +70,11 @@ void i2c_exec(){
                 I2C_AckPositionConfig(I2C1, I2C_AckPosition_Next);
                 I2C_AcknowledgeConfig(I2C1, DISABLE);
                 while( !I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED) );
-                I2C_GenerateSTOP(I2C1, ENABLE);
+                //I2C_GenerateSTOP(I2C1, ENABLE);
                 *cmd.rx_data++ = I2C_ReceiveData(I2C1);
                 cmd.rx_size--;
                 while( !I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED) );
+                I2C_GenerateSTOP(I2C1, ENABLE);
                 *cmd.rx_data++ = I2C_ReceiveData(I2C1);
                 cmd.rx_size--;
                 return;

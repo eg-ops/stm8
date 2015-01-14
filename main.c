@@ -406,12 +406,12 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
    //GPIO_ResetBits(GPIOA, GPIO_Pin_All /*MISO | MOSI| CE | IRQ*/);
 
     
-  
+  /*
    CLK_HSICmd(ENABLE);
    CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_HSI);
    while (CLK_GetFlagStatus(CLK_FLAG_HSIRDY) == 0);
    CLK_LSICmd(DISABLE);
-   
+   */
    
    
    //CLK_HSICmd(DISABLE);
@@ -458,14 +458,15 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
 
    
    GPIO_ResetBits(GPIOC, GPIO_Pin_All);
-   PIO_ResetBits(GPIOA, GPIO_Pin_All);
+   GPIO_ResetBits(GPIOA, GPIO_Pin_All);
    
-
+/*
    
    CLK_LSICmd(ENABLE);
    CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_LSI);
    while (CLK_GetFlagStatus(CLK_FLAG_LSIRDY) == 0);
    CLK_HSICmd(DISABLE); 
+  */
    
   /*
    
