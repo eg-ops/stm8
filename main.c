@@ -22,6 +22,11 @@ uint16_t temp;
 uint16_t temp_intr;
 uint16_t vcc;
 
+
+volatile uint8_t PCKENR1;
+volatile uint8_t PCKENR2;
+volatile uint8_t PCKENR3;
+
 void init_adc();
 void init_gpio();
 void spi(uint8_t full);
@@ -108,12 +113,6 @@ void spi(uint8_t full){
   
   
   nrf24l01p_read_reg(STATUS, &status, 1);
-  
-  if (status){
-      GPIO_ToggleBits(GPIOC, DS1621_VCC_PIN);
-      GPIO_ToggleBits(GPIOC, DS1621_VCC_PIN);
-  }
-  
   
   power_down();
   set_channel(2525-2400);
@@ -285,12 +284,12 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
 {
 
     
-  /*
+  /* 
    CLK_HSICmd(ENABLE);
    CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_HSI);
    while (CLK_GetFlagStatus(CLK_FLAG_HSIRDY) == 0);
    CLK_LSICmd(DISABLE);
-   */
+  */
    
    
    //CLK_HSICmd(DISABLE);
@@ -365,7 +364,7 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
   
    spi(1);
 
-   delay();
+   //delay();
    
    spi_send(temp, vcc);
    
@@ -410,7 +409,7 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
    CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_LSI);
    while (CLK_GetFlagStatus(CLK_FLAG_LSIRDY) == 0);
    CLK_HSICmd(DISABLE); 
-  */
+*/  
    
   /*
    
@@ -420,13 +419,14 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
    while (CLK_GetFlagStatus(CLK_FLAG_LSIRDY) == 0);
   */ 
  
+   PCKENR1 = CLK->PCKENR1;
+   PCKENR2 = CLK->PCKENR2;
+   PCKENR3 = CLK->PCKENR3;
+   
    RTC_ClearITPendingBit(RTC_IT_WUT); 
 
 }
 
-volatile uint8_t PCKENR1;
-volatile uint8_t PCKENR2;
-volatile uint8_t PCKENR3;
 
 int main( void )
 {
