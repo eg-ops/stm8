@@ -31,92 +31,13 @@ uint16_t GetVcc(void);
 
 void delay(){
   unsigned int volatile i, y;
-  for (y = 0; y < 0x3; y++){
+  for (y = 0; y < 0x1; y++){
     i = 0xFFF;
     while(i--);
   }
 }
 
-int main( void )
-{
 
- 
-   /*
-   CLK_HSICmd(ENABLE);
-  CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_HSI);
-  CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_1);
-  
-
-  
-  init_gpio();
-  init_adc();
-  
-  spi(1);
-  
-  ds1621_init();
-
- */
-  
-  
-   /* Switch to LSI as system clock source */
-   /* system clock prescaler: 1*/
-   CLK_LSICmd(ENABLE);
-   CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_1);
-   CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_LSI);
-   CLK_SYSCLKSourceSwitchCmd(ENABLE);
-   while (CLK_GetFlagStatus(CLK_FLAG_LSIRDY) == 0);
-   CLK_HSICmd(DISABLE);
-   CLK_HSEConfig(CLK_HSE_OFF);
-
-   /*
-   GPIO_Init(GPIOC, VCC_PIN, GPIO_Mode_Out_PP_Low_Slow);
-   GPIO_SetBits(GPIOC, VCC_PIN);
-   delay();
-   GPIO_ResetBits(GPIOC, VCC_PIN);
-*/
-   
-   
-    //CLK_PeripheralClockConfig(CLK_Peripheral_RTC, DISABLE);
-    //RTC_DeInit();
-   CLK_RTCClockConfig(CLK_RTCCLKSource_LSI, CLK_RTCCLKDiv_64);
-    CLK_PeripheralClockConfig(CLK_Peripheral_RTC, ENABLE);//Такт для RTC
-   //LCD_GLASS_Init(); //Инициализируем стекляшку
-   
-   //Переключаем все неиспользуемые пины на выход:
-    
-   //GPIOA->DDR = GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3  ;
-   //GPIOC->DDR = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_4 | GPIO_Pin_7;
-   //GPIOE->DDR = GPIO_Pin_7 | GPIO_Pin_6;
-   
-   //Настраиваем RTC
-    //RTC_WakeUpClock_CK_SPRE_16bits
-   RTC_WakeUpClockConfig( RTC_WakeUpClock_RTCCLK_Div16 /*RTC_WakeUpClock_RTCCLK_Div16*/); //time_step = 488uS
-   //RTC_WakeUpClock_CK_SPRE_16bits
-   RTC_ITConfig(RTC_IT_WUT, ENABLE);
-   enableInterrupts();
-
-   
-   RTC_WakeUpCmd(DISABLE);
-   CFG->GCR |= CFG_GCR_AL; //Поднимаем флаг AL
-   RTC_SetWakeUpCounter(37*10);//Прерывание через каждую секунду
-   RTC_WakeUpCmd(ENABLE);
-   
-   
- 
-   halt();
- 
- 
-  return 0;
-  /**/
-
-  CLK_HSICmd(ENABLE);
-  CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_HSI);
-  CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_1);
-
-
- 
-  
-}
 
 
 void init_adc(){
@@ -133,7 +54,11 @@ void init_adc(){
 void init_gpio(){
 
     GPIO_Init(GPIOA, VCC_PIN, GPIO_Mode_Out_PP_Low_Slow);
+    GPIO_Init(GPIOA, IRQ, GPIO_Mode_Out_PP_Low_Slow);
+    GPIO_Init(GPIOA, MOSI, GPIO_Mode_Out_PP_Low_Slow);
+    
     GPIO_Init(GPIOC, CSN, GPIO_Mode_Out_PP_Low_Slow);
+    
     GPIO_Init(GPIOC, DS1621_VCC_PIN, GPIO_Mode_Out_PP_Low_Slow);
     
 
@@ -166,6 +91,8 @@ void spi(uint8_t full){
     GPIO_ExternalPullUpConfig(GPIOA, MISO | MOSI, ENABLE);
     GPIO_ExternalPullUpConfig(GPIOC, SCK, ENABLE);
     //GPIO_ExternalPullUpConfig(GPIOC, CSN, ENABLE);
+    //GPIO_ExternalPullUpConfig(GPIOC, IRQ, ENABLE);
+    
     SPI_Init(SPI1, SPI_FirstBit_MSB, SPI_BaudRatePrescaler_32, SPI_Mode_Master, SPI_CPOL_Low, SPI_CPHA_1Edge, SPI_Direction_2Lines_FullDuplex, SPI_NSS_Soft, 0);
     //SPI_NSSInternalSoftwareCmd(SPI1, ENABLE);
   }
@@ -181,6 +108,17 @@ void spi(uint8_t full){
   
   
   nrf24l01p_read_reg(STATUS, &status, 1);
+  
+  if (status){
+      GPIO_ToggleBits(GPIOC, DS1621_VCC_PIN);
+      GPIO_ToggleBits(GPIOC, DS1621_VCC_PIN);
+  }
+  
+  
+  power_down();
+  set_channel(2525-2400);
+  power_up();
+  
   nrf24l01p_read_reg(CONFIG, &config, 1);
   nrf24l01p_read_reg(FEATURE, &feature, 1);
   nrf24l01p_read_reg(RF_CH, &rf_ch, 1); //2
@@ -279,11 +217,12 @@ void spi_send(uint16_t temp, uint16_t vcc){
   uint8_t status = 0, /*config = 0,*/ fifo = 0;
   unsigned int volatile i, y;
   uint16_t data[2] = {temp,vcc};
-  nrf24l01p_write(FLUSH_TX, 0, 0);
-  nrf24l01p_write(W_TX_PAYLOAD, (uint8_t*)&data, sizeof(data));
   power_up();
   
   nrf24l01p_ce_high(); 
+
+  nrf24l01p_write(FLUSH_TX, 0, 0);
+  nrf24l01p_write(W_TX_PAYLOAD, (uint8_t*)&data, sizeof(data));
   
   
   nrf24l01p_read_reg(FIFO_STATUS, &fifo, 1);
@@ -345,66 +284,6 @@ void tmp_read(){
 INTERRUPT_HANDLER(RTC_IRQHandler, 4)
 {
 
-  /*
-  CLK_HSICmd(ENABLE);
-  CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_HSI);
-  CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_8);
-   while (CLK_GetFlagStatus(CLK_FLAG_HSIRDY) == 0);
-  */
-  
-  /*
-   init_adc();
-   vcc = GetVcc();
-   temp_intr = GetTemp();
-   ADC_VrefintCmd(DISABLE);
-   ADC_Cmd(ADC1, DISABLE);
-   CLK_PeripheralClockConfig(CLK_Peripheral_ADC1, DISABLE);
-
-  
-   init_gpio();
-
-   
-   GPIO_SetBits(GPIOC, DS1621_VCC_PIN);
-   
-   ds1621_init();
-   ds1621_write_config(1);
-   ds1621_start_convert();
-   
-   while((ds1621_read_config() & 0x80) == 0);
-   
-   temp = ds1621_read_temperature();
-
-   //ds1621_stop_convert();
-   
-   I2C_Cmd(I2C1, DISABLE);
-   CLK_PeripheralClockConfig(CLK_Peripheral_I2C1, DISABLE);
-   
-   GPIO_ResetBits(GPIOC, DS1621_VCC_PIN);
-
-   
-   
-   GPIO_SetBits(GPIOA, VCC_PIN);
-   
-   spi(1);
-
-   spi_send(temp, vcc);
-
-   GPIO_ResetBits(GPIOA, VCC_PIN);
-  
-  */
-  
-  
-/*  
-   SPI_Cmd(SPI1, DISABLE);
-   GPIO_ExternalPullUpConfig(GPIOA, MISO | MOSI, DISABLE);
-   GPIO_ExternalPullUpConfig(GPIOC, SCK, DISABLE);
-   SYSCFG_REMAPPinConfig(REMAP_Pin_SPI1Full, DISABLE);
-   CLK_PeripheralClockConfig(CLK_Peripheral_SPI1, DISABLE);
-*/ 
-   
-   //GPIO_ResetBits(GPIOC, GPIO_Pin_All /*VCC_PIN | CSN | SCK*/);
-   //GPIO_ResetBits(GPIOA, GPIO_Pin_All /*MISO | MOSI| CE | IRQ*/);
-
     
   /*
    CLK_HSICmd(ENABLE);
@@ -417,9 +296,8 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
    //CLK_HSICmd(DISABLE);
    //CLK_HSEConfig(CLK_HSE_OFF);
 
-   
-  init_gpio();
-  GPIO_SetBits(GPIOC, DS1621_VCC_PIN);
+  
+  
    init_adc();
    vcc = GetVcc();
    temp_intr = GetTemp();
@@ -427,38 +305,104 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
     ADC_VrefintCmd(DISABLE);
    ADC_Cmd(ADC1, DISABLE);
    CLK_PeripheralClockConfig(CLK_Peripheral_ADC1, DISABLE);
+  
+
+  
+   //init_gpio();
+    
+    GPIO_Init(GPIOC, DS1621_VCC_PIN, GPIO_Mode_Out_PP_Low_Slow);
    
    ds1621_init();
+   
+   GPIO_SetBits(GPIOC, DS1621_VCC_PIN);
    tmp_test();
    tmp_read();
    
    temp = (buff2[0] << 8) | buff2[1];
+  
+   GPIO_ResetBits(GPIOC, DS1621_VCC_PIN);
    
-     I2C_Cmd(I2C1, DISABLE);
+   I2C_Cmd(I2C1, DISABLE);
    CLK_PeripheralClockConfig(CLK_Peripheral_I2C1, DISABLE);
    
    
-  GPIO_ResetBits(GPIOC, DS1621_VCC_PIN);
+  
+  
   
   
   //***** SPI
-  GPIO_SetBits(GPIOA, VCC_PIN);
    
+   
+   
+   
+    GPIO_Init(GPIOA, VCC_PIN, GPIO_Mode_Out_PP_Low_Slow);
+    GPIO_Init(GPIOA, IRQ, GPIO_Mode_In_PU_No_IT);
+    GPIO_Init(GPIOA, MOSI, GPIO_Mode_Out_PP_Low_Slow);
+    GPIO_Init(GPIOA, MISO, GPIO_Mode_In_PU_No_IT);
+    GPIO_Init(GPIOC, CSN, GPIO_Mode_Out_PP_Low_Slow);
+    GPIO_Init(GPIOA, CE, GPIO_Mode_Out_PP_Low_Slow);
+    GPIO_Init(GPIOC, SCK, GPIO_Mode_Out_PP_Low_Slow);
+    
+    
+    //GPIO_ExternalPullUpConfig(GPIOC, CSN, ENABLE);
+    //GPIO_ExternalPullUpConfig(GPIOA, CE, ENABLE);
+
+   
+   //GPIO_Init(GPIOA, MISO, GPIO_Mode_In_PU_No_IT);
+   
+   //init_gpio();
+   
+    GPIO_ExternalPullUpConfig(GPIOA, MISO | MOSI, ENABLE);
+    GPIO_ExternalPullUpConfig(GPIOC, SCK, ENABLE);
+
+
+   
+  GPIO_SetBits(GPIOA, VCC_PIN);
+  GPIO_SetBits(GPIOC, CSN);
+  
+  //nrf24l01p_ce_high(); 
+   
+  
    spi(1);
 
-   spi_send(temp, vcc);
-
-   GPIO_ResetBits(GPIOA, VCC_PIN);
+   delay();
    
+   spi_send(temp, vcc);
+   
+   //nrf24l01p_ce_low(); 
+
+   GPIO_ResetBits(GPIOC, CSN);
+   GPIO_ResetBits(GPIOA, VCC_PIN);
+
+   
+   
+   SYSCFG_REMAPPinConfig(REMAP_Pin_SPI1Full, DISABLE);
    SPI_Cmd(SPI1, DISABLE);
+   CLK_PeripheralClockConfig(CLK_Peripheral_SPI1, DISABLE);
+
    GPIO_ExternalPullUpConfig(GPIOA, MISO | MOSI, DISABLE);
    GPIO_ExternalPullUpConfig(GPIOC, SCK, DISABLE);
+
+   SPI_DeInit(SPI1);
+   
+   /*
+
+   
    SYSCFG_REMAPPinConfig(REMAP_Pin_SPI1Full, DISABLE);
    CLK_PeripheralClockConfig(CLK_Peripheral_SPI1, DISABLE);
 
+
    
    GPIO_ResetBits(GPIOC, GPIO_Pin_All);
-   GPIO_ResetBits(GPIOA, GPIO_Pin_All);
+   GPIO_ResetBits(GPIOA, GPIO_Pin_All);*/
+   
+   GPIOA->DDR = GPIO_Pin_All;
+   GPIOB->DDR = GPIO_Pin_All;
+   GPIOC->DDR = GPIO_Pin_All;
+   GPIOD->DDR = GPIO_Pin_All;
+   GPIOE->DDR = GPIO_Pin_All;
+   
+ 
    
 /*
    
@@ -478,4 +422,53 @@ INTERRUPT_HANDLER(RTC_IRQHandler, 4)
  
    RTC_ClearITPendingBit(RTC_IT_WUT); 
 
+}
+
+volatile uint8_t PCKENR1;
+volatile uint8_t PCKENR2;
+volatile uint8_t PCKENR3;
+
+int main( void )
+{
+
+  
+   /* Switch to LSI as system clock source */
+   /* system clock prescaler: 1*/
+   CLK_LSICmd(ENABLE);
+   CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_1);
+   CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_LSI);
+   CLK_SYSCLKSourceSwitchCmd(ENABLE);
+   while (CLK_GetFlagStatus(CLK_FLAG_LSIRDY) == 0);
+   CLK_HSICmd(DISABLE);
+   CLK_HSEConfig(CLK_HSE_OFF);
+   
+   CLK_PeripheralClockConfig(CLK_Peripheral_RTC, DISABLE);
+   CLK_RTCClockConfig(CLK_RTCCLKSource_LSI, CLK_RTCCLKDiv_64);
+   CLK_PeripheralClockConfig(CLK_Peripheral_RTC, ENABLE);
+   
+   RTC_WakeUpClockConfig( RTC_WakeUpClock_RTCCLK_Div16); 
+   RTC_ITConfig(RTC_IT_WUT, ENABLE);
+   enableInterrupts();
+   
+   GPIOA->DDR = GPIO_Pin_All;
+   GPIOB->DDR = GPIO_Pin_All;
+   GPIOC->DDR = GPIO_Pin_All;
+   GPIOD->DDR = GPIO_Pin_All;
+   GPIOE->DDR = GPIO_Pin_All;
+   
+   
+   RTC_WakeUpCmd(DISABLE);
+   CFG->GCR |= CFG_GCR_AL; //Поднимаем флаг AL
+   RTC_SetWakeUpCounter(37*10);//Прерывание через каждую секунду
+   RTC_WakeUpCmd(ENABLE);
+   
+   CLK->PCKENR2 &= ~CLK_PCKENR2_BOOTROM;
+   
+   PCKENR1 = CLK->PCKENR1;
+   PCKENR2 = CLK->PCKENR2;
+   PCKENR3 = CLK->PCKENR3;
+
+ 
+   halt();
+ 
 }

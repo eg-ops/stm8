@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=1344180794
+Checksum=1401747841
 [Stack]
 FillEnabled=0
 OverflowWarningsEnabled=1
@@ -52,6 +52,9 @@ Enabled=0
 ShowSource=1
 [BreakpointUsageDialog]
 Placement=_ 418 239 863 521
+[SfrWindow]
+Show=1 1
+Sort=4 0
 [watch_formats]
 Fmt0={W}0:temp	4	0
 Fmt1={W}0:vcc	3	0
@@ -63,7 +66,8 @@ GraphEnabled=0
 ShowTimeLog=1
 ShowTimeSum=1
 [Breakpoints]
-Count=0
+Bp0=_ "STD_CODE" "{$PROJ_DIR$\main.c}.110.3" 1 0 0 0 "" 0 ""
+Count=1
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
